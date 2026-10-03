@@ -1,0 +1,38 @@
+{
+  "name": "@coursecity/api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CourseCity authoritative Fastify API server and OpenAPI 3.1 documentation",
+  "main": "./dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "vitest run",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@coursecity/auth": "workspace:*",
+    "@coursecity/contracts": "workspace:*",
+    "@coursecity/database": "workspace:*",
+    "@coursecity/shared": "workspace:*",
+    "@coursecity/validation": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^10.0.2",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/swagger": "^9.4.2",
+    "@scalar/fastify-api-reference": "^1.25.127",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "fastify-type-provider-zod": "^4.0.2",
+    "pino": "^9.6.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
+  }
+}
