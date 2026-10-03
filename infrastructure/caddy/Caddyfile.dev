@@ -1,0 +1,21 @@
+# CourseCity Local Development Caddy Configuration
+localhost:80 {
+  # Reverse proxy for API documentation and endpoints
+  handle /api/* {
+    reverse_proxy api:4000
+  }
+  handle /docs* {
+    reverse_proxy api:4000
+  }
+  handle /healthz {
+    reverse_proxy api:4000
+  }
+  handle /readyz {
+    reverse_proxy api:4000
+  }
+
+  # Reverse proxy for Web frontend
+  handle {
+    reverse_proxy web:3000
+  }
+}

@@ -1,75 +1,70 @@
 # CourseCity 1.0 — Architecture Handoff Protocol
 
-## Current Phase: Phase 0 Complete -> Transition to Phase 1
+## Current Phase: Phase 1 & Phase 2 Complete -> Transition to Phase 3
 
-### 1. Completed Work (Phase 0 — Architectural Pre-Flight)
+### 1. Completed Work
 
-- Analyzed CourseCity 1.0 Master Systems Architecture and Master V2 Frozen Amendment.
-- Initialized local Git repository (`git init`).
-- Verified Node.js v22.18.0 (LTS) environment and verified `pnpm` 12.8.1.
-- Authored 12 authoritative Phase 0 specification documents:
-  - `docs/product/product-requirements.md`: Complete scope matrix (V1 active vs V2 planned vs future deferred), learner journey, personas, non-functional requirements.
-  - `docs/architecture/system-overview.md`: High-level topology, Docker container layout, network trust boundaries, outbox pattern, observability.
-  - `docs/architecture/domain-model.md`: Full entity schema descriptions, UUIDv7 vs business references (`CC-ORD-...`, etc.), all 18 frozen lifecycle state machines, and concurrency/lock order rules.
-  - `docs/architecture/security-architecture.md`: Threat model, Argon2id, rotating refresh tokens with reuse detection, MFA, RBAC with publisher scoping, and 15 non-negotiable security invariants.
-  - `docs/architecture/payment-architecture.md`: Paystack integration, `IPaymentProvider`, two-way verification, decoupled state machines, minor unit math, and idempotency.
-  - `docs/architecture/receipt-verification.md`: Cryptographic Ed25519 digital receipts, RFC 8785 canonical JSON, public verification surface, and privacy protection.
-  - `docs/architecture/marketplace-architecture.md`: Multi-publisher model (`PLATFORM`, `INSTRUCTOR`, `ORGANIZATION`), tenant isolation, immutable course versioning, and atomic content blocks.
-  - `docs/architecture/api-architecture.md`: OpenAPI 3.1, resource groups, API key hashing, frozen scopes, token bucket rate limits, RFC 7807 problem details, and outbound HMAC webhooks.
-  - `docs/architecture/frontend-architecture.md`: Next.js 15+ App Router, mobile-first recomposition, WCAG 2.2 AA states, motion choreography, Three.js digital textbook metaphor, and reader engine.
-  - `docs/architecture/mobile-architecture.md`: React Native + Expo client blueprint, shared contracts and API client, secure hardware storage, and offline sync roadmap.
-  - `docs/architecture/design-dna.md`: CourseCity orange palette (`#F97316`), warm neutrals, semantic pastels, typography, Lucide icon system, and visual storytelling modes.
-  - `docs/adr/0001-architecture-baseline.md`: Authoritative baseline Architecture Decision Record.
+#### Phase 0 — Architectural Pre-Flight
+* Authored all 12 authoritative architectural and pre-flight documents:
+  - `docs/product/product-requirements.md` (Scope matrix, personas, workflows)
+  - `docs/architecture/system-overview.md` (System topology, monorepo, Caddy, outbox)
+  - `docs/architecture/domain-model.md` (Entity schemas, UUIDv7 vs business IDs, 18 state machines, lock ordering)
+  - `docs/architecture/security-architecture.md` (Threat model, Argon2id, token rotation, MFA, RBAC scoping, invariants)
+  - `docs/architecture/payment-architecture.md` (Paystack, IPaymentProvider, double verification, lifecycles)
+  - `docs/architecture/receipt-verification.md` (RFC 8785 canonical JSON, SHA-256 fingerprint, Ed25519 signing)
+  - `docs/architecture/marketplace-architecture.md` (Publisher abstraction, organizations, immutable course versioning)
+  - `docs/architecture/api-architecture.md` (OpenAPI 3.1, scopes, rate limits, RFC 7807 problem details)
+  - `docs/architecture/frontend-architecture.md` (Next.js, responsive recomposition, WCAG 2.2 AA, motion, Three.js)
+  - `docs/architecture/mobile-architecture.md` (React Native + Expo blueprint, shared packages, secure storage)
+  - `docs/architecture/design-dna.md` (Orange palette, warm neutrals, typography, Lucide icon system)
+  - `docs/adr/0001-architecture-baseline.md` (Baseline Architecture Decision Record)
 
-### 2. Files Changed / Created
+#### Phase 1 — Repository and Toolchain Foundation
+* Monorepo toolchain initialized with **pnpm workspaces** and **Turborepo**.
+* Strict TypeScript base configuration (`tsconfig.base.json`) with zero `any`.
+* `.github/workflows/ci.yml` CI workflow executing lint, typecheck, test, and build.
+* Scaffolded shared packages:
+  - `@coursecity/contracts`: State enums, RFC 7807 problem details, DTOs.
+  - `@coursecity/shared`: RFC 8785 canonical JSON, minor currency formatting, business ID generators, Ed25519 signing/verification. Tested with Vitest.
+  - `@coursecity/validation`: Zod schemas for auth, commerce, progress, assessments, verification. Tested with Vitest.
+  - `@coursecity/auth`: Argon2id password hashing, token hashing, RBAC permission matrix. Tested with Vitest.
+  - `@coursecity/database`: Kysely typed schema interfaces and connection pool factory.
+  - `@coursecity/design-tokens`: Authoritative CourseCity orange palette, neutrals, and typography.
+  - `@coursecity/design-system`: Accessible Button, Badge, Card, and Skeletons with Lucide React.
+  - `@coursecity/api-client`: Strongly typed HTTP client with RFC 7807 problem error handling.
+* Scaffolded applications:
+  - `apps/api`: Fastify server with CORS, Helmet, Cookie, Rate-limit, OpenAPI 3.1 Scalar docs (`/docs`), `/healthz`, `/readyz`. Tested with Fastify injection.
+  - `apps/web`: Next.js 15+ App Router, Tailwind CSS, Lucide React, responsive landing page, and `/r/[receiptId]` public verification surface.
 
-- `docs/product/product-requirements.md`
-- `docs/architecture/system-overview.md`
-- `docs/architecture/domain-model.md`
-- `docs/architecture/security-architecture.md`
-- `docs/architecture/payment-architecture.md`
-- `docs/architecture/receipt-verification.md`
-- `docs/architecture/marketplace-architecture.md`
-- `docs/architecture/api-architecture.md`
-- `docs/architecture/frontend-architecture.md`
-- `docs/architecture/mobile-architecture.md`
-- `docs/architecture/design-dna.md`
-- `docs/adr/0001-architecture-baseline.md`
-- `docs/handoffs/current-handoff.md`
+#### Phase 2 — Infrastructure and Local Development
+* Docker Compose development environment (`infrastructure/docker/docker-compose.dev.yml`) for PostgreSQL 16 and Redis 7 with health checks and persistent volumes.
+* PostgreSQL initialization script (`infrastructure/postgres/init.sql`) enabling `pgcrypto`, `uuid-ossp`, and `pg_trgm` extensions.
+* Redis development configuration (`infrastructure/redis/redis.conf`) with AOF persistence.
+* Local Caddy reverse proxy configuration (`infrastructure/caddy/Caddyfile.dev`).
+* Database migration foundation using Kysely (`packages/database/src/migrator.ts` and `src/cli.ts`).
+* Complete developer onboarding runbook (`docs/runbooks/local-development.md`) and project root `README.md`.
 
-### 3. Database Migrations
+---
 
-None in Phase 0 (Pre-Flight Documentation phase). Schema designed and fully specified for Phase 3.
+### 2. Quality & Verification Gates Passed
+* **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks across all 10 packages/apps).
+* **Unit Tests**: `pnpm run test` passed (12/12 turbo tasks, 13 Vitest tests passed).
+* **Linter**: `pnpm run lint` passed (9/9 turbo tasks clean).
+* **Formatter**: `pnpm run format` passed (Prettier validated on all files).
+* **Production Build**: `pnpm run build` passed (10/10 turbo tasks, Next.js optimized routes and Fastify server compiled).
 
-### 4. API Changes
+---
 
-OpenAPI 3.1 contracts and RFC 7807 error shapes fully specified.
-
-### 5. Known Defects / Blockers
-
-None.
-
-### 6. Tests Run & Verification
-
-All Phase 0 exit criteria verified:
-
-- Complete architectural pre-flight documents created.
-- Zero contradictory requirements exist.
-- V1 vs V2 scope matrix is explicit and unambiguous.
-
-### 7. Next Exact Task: Phase 1 — Repository and Toolchain Foundation
-
-- Scaffold root `package.json`, `pnpm-workspace.yaml`, and `turbo.json`.
-- Scaffold `apps/web`, `apps/api`.
-- Scaffold shared packages:
-  - `packages/contracts`
-  - `packages/api-client`
-  - `packages/validation`
-  - `packages/database`
-  - `packages/auth`
-  - `packages/design-tokens`
-  - `packages/design-system`
-  - `packages/shared`
-- Configure strict TypeScript (`tsconfig.base.json`), ESLint, Prettier.
-- Configure GitHub Actions CI workflow (`.github/workflows/ci.yml`).
-- Run workspace install, build, and typecheck to verify exit criteria for Phase 1.
+### 3. Next Exact Task: Phase 3 — Database and Domain Foundation
+* Implement comprehensive, reversible Kysely SQL migrations in `packages/database/migrations/`:
+  - `0001_identity_and_auth.ts` (`users`, `user_profiles`, `sessions`, `refresh_tokens`, `email_verification_tokens`, `password_reset_tokens`)
+  - `0002_roles_and_permissions.ts` (`roles`, `permissions`, `role_permissions`, `user_roles`)
+  - `0003_publishers_and_organizations.ts` (`publishers`, `instructor_profiles`, `organizations`, `organization_members`, `publisher_members`)
+  - `0004_courses_and_curriculum.ts` (`courses`, `course_versions`, `course_categories`, `course_category_links`, `course_instructors`, `course_modules`, `lessons`, `lesson_blocks`, `course_assets`)
+  - `0005_commerce_and_reconciliation.ts` (`products`, `prices`, `course_offerings`, `orders`, `order_items`, `payments`, `payment_events`, `payment_reconciliations`, `payment_reference_links`, `refunds`, `refund_events`, `entitlements`)
+  - `0006_learning_and_progress.ts` (`enrollments`, `lesson_progress`, `course_progress`, `bookmarks`, `learner_notes`, `learning_activity`)
+  - `0007_assessments_and_credentials.ts` (`assessments`, `assessment_questions`, `question_options`, `assessment_attempts`, `assessment_answers`, `assessment_results`, `assignments`, `assignment_submissions`, `assignment_grades`, `examinations`, `examination_attempts`, `examination_answers`, `examination_results`, `gradebook_entries`, `grading_rules`, `certificates`, `certificate_events`)
+  - `0008_receipts_and_verification.ts` (`receipts`, `receipt_events`, `receipt_verifications`, `receipt_signing_keys`)
+  - `0009_operations_and_platform.ts` (`idempotency_keys`, `resource_versions`, `outbox_events`, `dead_letter_events`, `background_jobs`, `background_job_runs`, `reconciliation_runs`, `notifications`, `notification_preferences`, `email_events`, `whatsapp_events`, `api_clients`, `api_keys`, `api_scopes`, `api_key_scopes`, `api_usage_events`, `webhook_endpoints`, `webhook_deliveries`, `audit_logs`, `security_events`, `admin_actions`, `system_settings`, `feature_flags`, `maintenance_windows`, `system_status_events`, `service_status_snapshots`, `incidents`)
+* Implement development/test seed scripts (`packages/database/src/seed.ts`).
+* Write database migration verification tests to ensure forward migrations apply cleanly and rollbacks are 100% reversible.
