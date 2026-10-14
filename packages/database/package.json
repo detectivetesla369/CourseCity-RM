@@ -12,9 +12,12 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "migrate:latest": "tsx src/cli.ts latest",
-    "migrate:down": "tsx src/cli.ts down"
+    "migrate:down": "tsx src/cli.ts down",
+    "seed": "tsx src/seed.ts",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@coursecity/auth": "workspace:*",
     "@coursecity/contracts": "workspace:*",
     "dotenv": "^16.4.7",
     "kysely": "^0.27.6",
@@ -24,6 +27,7 @@
     "@types/node": "^22.13.9",
     "@types/pg": "^8.11.11",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.8"
   }
 }

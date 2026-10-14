@@ -356,6 +356,9 @@ importers:
 
   packages/database:
     dependencies:
+      '@coursecity/auth':
+        specifier: workspace:*
+        version: link:../auth
       '@coursecity/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -381,6 +384,9 @@ importers:
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
+      vitest:
+        specifier: ^3.0.8
+        version: 3.2.7(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)(yaml@2.9.1)
 
   packages/design-system:
     dependencies:

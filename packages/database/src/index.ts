@@ -262,6 +262,43 @@ export interface IdempotencyKeysTable {
   created_at: Generated<Date>;
 }
 
+export interface RolesTable {
+  id: Generated<string>;
+  name: string;
+  description: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PermissionsTable {
+  id: Generated<string>;
+  name: string;
+  description: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface RolePermissionsTable {
+  role_id: string;
+  permission_id: string;
+}
+
+export interface UserRolesTable {
+  id: Generated<string>;
+  user_id: string;
+  role_id: string;
+  scope_resource_type: string | null;
+  scope_resource_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ReceiptSigningKeysTable {
+  id: Generated<string>;
+  key_id: string;
+  public_key_pem: string;
+  is_active: boolean;
+  created_at: Generated<Date>;
+  revoked_at: Date | null;
+}
+
 // ==========================================
 // 2. CONSOLIDATED DATABASE INTERFACE
 // ==========================================
@@ -270,6 +307,10 @@ export interface Database {
   user_profiles: UserProfilesTable;
   sessions: SessionsTable;
   refresh_tokens: RefreshTokensTable;
+  roles: RolesTable;
+  permissions: PermissionsTable;
+  role_permissions: RolePermissionsTable;
+  user_roles: UserRolesTable;
   publishers: PublishersTable;
   courses: CoursesTable;
   course_versions: CourseVersionsTable;
@@ -283,6 +324,7 @@ export interface Database {
   enrollments: EnrollmentsTable;
   lesson_progress: LessonProgressTable;
   receipts: ReceiptsTable;
+  receipt_signing_keys: ReceiptSigningKeysTable;
   certificates: CertificatesTable;
   outbox_events: OutboxEventsTable;
   idempotency_keys: IdempotencyKeysTable;

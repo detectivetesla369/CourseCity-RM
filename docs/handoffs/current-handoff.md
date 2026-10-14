@@ -1,6 +1,6 @@
 # CourseCity 1.0 — Architecture Handoff Protocol
 
-## Current Phase: Phase 1 & Phase 2 Complete -> Transition to Phase 3
+## Current Phase: Phase 3 Complete -> Transition to Phase 4 (Authentication & Authorization)
 
 ### 1. Completed Work
 
@@ -44,27 +44,52 @@
 * Database migration foundation using Kysely (`packages/database/src/migrator.ts` and `src/cli.ts`).
 * Complete developer onboarding runbook (`docs/runbooks/local-development.md`) and project root `README.md`.
 
+#### Phase 3 — Database and Domain Foundation
+* Implemented all 9 comprehensive, reversible Kysely SQL migrations in `packages/database/migrations/`:
+  - `0001_identity_and_auth.ts`: `users`, `user_profiles`, `sessions`, `refresh_tokens`, `email_verification_tokens`, `password_reset_tokens`.
+  - `0002_roles_and_permissions.ts`: `roles`, `permissions`, `role_permissions`, `user_roles`.
+  - `0003_publishers_and_organizations.ts`: `publishers`, `instructor_profiles`, `organizations`, `organization_members`, `publisher_members`.
+  - `0004_courses_and_curriculum.ts`: `courses`, `course_versions`, `course_categories`, `course_category_links`, `course_instructors`, `course_modules`, `lessons`, `lesson_blocks`, `course_assets`.
+  - `0005_commerce_and_reconciliation.ts`: `products`, `prices`, `course_offerings`, `orders`, `order_items`, `payments`, `payment_events`, `payment_reconciliations`, `payment_reference_links`, `refunds`, `refund_events`, `entitlements`.
+  - `0006_learning_and_progress.ts`: `enrollments`, `lesson_progress`, `course_progress`, `bookmarks`, `learner_notes`, `learning_activity`.
+  - `0007_assessments_and_credentials.ts`: `assessments`, `assessment_questions`, `question_options`, `assessment_attempts`, `assessment_answers`, `assessment_results`, `assignments`, `assignment_submissions`, `assignment_grades`, `examinations`, `examination_attempts`, `examination_answers`, `examination_results`, `gradebook_entries`, `grading_rules`, `certificates`, `certificate_events`.
+  - `0008_receipts_and_verification.ts`: `receipts`, `receipt_events`, `receipt_verifications`, `receipt_signing_keys`.
+  - `0009_operations_and_platform.ts`: `idempotency_keys`, `resource_versions`, `outbox_events`, `dead_letter_events`, `background_jobs`, `background_job_runs`, `reconciliation_runs`, `notifications`, `notification_preferences`, `email_events`, `whatsapp_events`, `api_clients`, `api_keys`, `api_scopes`, `api_key_scopes`, `api_usage_events`, `webhook_endpoints`, `webhook_deliveries`, `audit_logs`, `security_events`, `admin_actions`, `system_settings`, `feature_flags`, `maintenance_windows`, `system_status_events`, `service_status_snapshots`, `incidents`.
+* Implemented development & test seed script (`packages/database/src/seed.ts`):
+  - Pre-seeds platform roles and permission mappings.
+  - Pre-seeds CourseCity official platform publisher.
+  - Pre-seeds SuperAdmin user with Argon2id hash and MFA enabled.
+  - Pre-seeds Learner demo user with profile and role assignments.
+  - Pre-seeds Ed25519 cryptographic public verification key.
+* Created unit test suite (`packages/database/src/index.test.ts`) validating factory, migrator, and verifying all 9 migrations export reversible `up` and `down` handlers.
+
 ---
 
 ### 2. Quality & Verification Gates Passed
 * **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks across all 10 packages/apps).
-* **Unit Tests**: `pnpm run test` passed (12/12 turbo tasks, 13 Vitest tests passed).
+* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 16 Vitest tests passed across all packages and apps).
 * **Linter**: `pnpm run lint` passed (9/9 turbo tasks clean).
-* **Formatter**: `pnpm run format` passed (Prettier validated on all files).
 * **Production Build**: `pnpm run build` passed (10/10 turbo tasks, Next.js optimized routes and Fastify server compiled).
 
 ---
 
-### 3. Next Exact Task: Phase 3 — Database and Domain Foundation
-* Implement comprehensive, reversible Kysely SQL migrations in `packages/database/migrations/`:
-  - `0001_identity_and_auth.ts` (`users`, `user_profiles`, `sessions`, `refresh_tokens`, `email_verification_tokens`, `password_reset_tokens`)
-  - `0002_roles_and_permissions.ts` (`roles`, `permissions`, `role_permissions`, `user_roles`)
-  - `0003_publishers_and_organizations.ts` (`publishers`, `instructor_profiles`, `organizations`, `organization_members`, `publisher_members`)
-  - `0004_courses_and_curriculum.ts` (`courses`, `course_versions`, `course_categories`, `course_category_links`, `course_instructors`, `course_modules`, `lessons`, `lesson_blocks`, `course_assets`)
-  - `0005_commerce_and_reconciliation.ts` (`products`, `prices`, `course_offerings`, `orders`, `order_items`, `payments`, `payment_events`, `payment_reconciliations`, `payment_reference_links`, `refunds`, `refund_events`, `entitlements`)
-  - `0006_learning_and_progress.ts` (`enrollments`, `lesson_progress`, `course_progress`, `bookmarks`, `learner_notes`, `learning_activity`)
-  - `0007_assessments_and_credentials.ts` (`assessments`, `assessment_questions`, `question_options`, `assessment_attempts`, `assessment_answers`, `assessment_results`, `assignments`, `assignment_submissions`, `assignment_grades`, `examinations`, `examination_attempts`, `examination_answers`, `examination_results`, `gradebook_entries`, `grading_rules`, `certificates`, `certificate_events`)
-  - `0008_receipts_and_verification.ts` (`receipts`, `receipt_events`, `receipt_verifications`, `receipt_signing_keys`)
-  - `0009_operations_and_platform.ts` (`idempotency_keys`, `resource_versions`, `outbox_events`, `dead_letter_events`, `background_jobs`, `background_job_runs`, `reconciliation_runs`, `notifications`, `notification_preferences`, `email_events`, `whatsapp_events`, `api_clients`, `api_keys`, `api_scopes`, `api_key_scopes`, `api_usage_events`, `webhook_endpoints`, `webhook_deliveries`, `audit_logs`, `security_events`, `admin_actions`, `system_settings`, `feature_flags`, `maintenance_windows`, `system_status_events`, `service_status_snapshots`, `incidents`)
-* Implement development/test seed scripts (`packages/database/src/seed.ts`).
-* Write database migration verification tests to ensure forward migrations apply cleanly and rollbacks are 100% reversible.
+### 3. Next Exact Task: Phase 4 — Authentication & Authorization
+* Fastify Authentication Routes and Services in `apps/api`:
+  - `POST /api/v1/auth/signup`: Validates input with Zod, checks unique email, hashes password with Argon2id, generates email verification token, creates user and profile, fires Outbox event `AUTH_USER_REGISTERED`.
+  - `POST /api/v1/auth/signin`: Validates credentials, checks account status, creates session, generates cryptographically random refresh token (stored as SHA-256 hash) and short-lived access JWT/token, sets `HttpOnly`, `SameSite=Strict` secure cookies.
+  - `POST /api/v1/auth/signout`: Invalidates active session and refresh token family.
+  - `POST /api/v1/auth/refresh`: Refresh token rotation with reuse detection (invalidates entire token family if already consumed).
+  - `POST /api/v1/auth/verify-email`: Consumes single-use token, activates user, sets `email_verified_at`.
+  - `POST /api/v1/auth/forgot-password`: Generates secure single-use reset token and dispatches email outbox event.
+  - `POST /api/v1/auth/reset-password`: Consumes reset token and updates Argon2id password hash.
+  - `GET /api/v1/auth/me`: Returns authenticated user identity, profile, and roles.
+  - `GET /api/v1/auth/sessions`: Lists active sessions with device/IP info.
+  - `DELETE /api/v1/auth/sessions/:id`: Revokes specific session.
+* Fastify Authentication & Authorization Plugins:
+  - `authPlugin`: Parses and verifies session / bearer tokens, populates `request.user`.
+  - `requireAuth`: Guards protected routes with 401 Unauthorized Problem Details.
+  - `requirePermission`: Enforces scoped RBAC permissions (e.g. `COURSE_CREATE`, `ADMIN_USERS_MANAGE`, with publisher/org scoping).
+* Comprehensive Integration Tests for Auth Security Invariants:
+  - Password hashing verification (Argon2id).
+  - Token rotation and reuse detection.
+  - Publisher-scoped authorization isolation.
