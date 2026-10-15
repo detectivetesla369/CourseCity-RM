@@ -1,6 +1,6 @@
 # CourseCity 1.0 — Architecture Handoff Protocol
 
-## Current Phase: Phase 4 Complete -> Transition to Phase 5 (Courses, Curriculum & Publisher Engine)
+## Current Phase: Phase 5 Complete -> Transition to Phase 6 (Learner Experience & Progress Tracking)
 
 ### 1. Completed Work
 
@@ -80,27 +80,46 @@
 * Extended typed `ApiClient` (`packages/api-client/src/index.ts`) with all authentication methods.
 * Created comprehensive integration tests (`apps/api/src/auth.test.ts`) verifying input validation, RFC 7807 error formats, token expiry, tampering rejection, RBAC matrix, and token reuse family revocation.
 
+#### Phase 5 — Courses, Curriculum & Publisher Engine
+* Implemented course domain and catalog service (`apps/api/src/services/course.service.ts`):
+  - `getCatalog`: Search by title/description, filter by level, free/paid, sort by price/newest, pagination.
+  - `getCourseBySlug`: Comprehensive course detail, active version retrieval, publisher metadata, modules and lessons summary, with user enrollment status.
+  - `getLesson`: Curriculum block reader enforcing the **Content Access Gating Invariant**:
+    - Preview lessons (`is_previewable === true`) are accessible to unauthenticated guests and learners.
+    - Non-preview lessons strictly require authentication (`401 Unauthorized`) and an active entitlement or enrollment (`403 Forbidden: ENROLLMENT_REQUIRED`).
+  - `createCourse`: Creates course draft and initial version (requires `courses:create`).
+  - `publishCourseVersion`: Transitions version to `PUBLISHED` and sets active version (requires `courses:publish`).
+* Fastify course route endpoints (`apps/api/src/routes/course.routes.ts`):
+  - `GET /api/v1/catalog`
+  - `GET /api/v1/courses/:slug`
+  - `GET /api/v1/courses/:slug/lessons/:lessonSlug`
+  - `POST /api/v1/publisher/courses`
+  - `POST /api/v1/publisher/courses/:courseId/publish`
+* Realistic curriculum seeding in `packages/database/src/seed.ts`:
+  - Course 1: *Full-Stack TypeScript & Cloud-Native Architecture* (Paid course with previewable and gated lessons, rich code blocks, callouts, and diagrams).
+  - Course 2: *Modern TypeScript for Web Developers* (Free course with fundamentals and preview lessons).
+* Comprehensive integration test suite in `apps/api/src/courses.test.ts` verifying catalog filters, 404 handling, preview vs gated lesson access invariants, and publisher permission enforcement.
+
 ---
 
 ### 2. Quality & Verification Gates Passed
 * **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks across all 10 packages/apps).
-* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 39 Vitest tests passed across all packages and apps).
+* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 50 Vitest tests passed across all packages and apps: 33 in API, 4 in auth, 4 in validation, 6 in shared, 3 in database).
 * **Linter**: `pnpm run lint` passed (9/9 turbo tasks clean).
 * **Production Build**: `pnpm run build` passed (10/10 turbo tasks, Next.js optimized routes and Fastify server compiled).
 
 ---
 
-### 3. Next Exact Task: Phase 5 — Courses, Curriculum & Publisher Engine
-* Course Domain Entities & Services:
-  - Publishers & Organizations: Platform publisher, instructor publisher, organization publisher scoping.
-  - Immutable Course Versions: Draft -> Ready for Review -> Published -> Superseded lifecycle.
-  - Course Modules, Lessons, and Rich Block types (`HEADING`, `PARAGRAPH`, `IMAGE`, `CODE`, `TABLE`, `CALLOUT`, `QUOTE`, `DIAGRAM`, `FORMULA`, `RESOURCE`, `EXERCISE`).
-* Fastify Course Routes (`apps/api/src/routes/course.routes.ts`):
-  - `GET /api/v1/catalog`: Search, filter by category/level/price, pagination, published versions only.
-  - `GET /api/v1/courses/:slug`: Course detail page with module/lesson outline, publisher info, pricing.
-  - `GET /api/v1/courses/:slug/lessons/:lessonSlug`: Lesson content retrieval (preview lessons public; paid lessons gated by entitlement/enrollment).
-  - `POST /api/v1/publisher/courses`: Create course draft (requires `courses:create` permission).
-  - `POST /api/v1/publisher/courses/:id/versions`: Create new course version.
-  - `POST /api/v1/publisher/courses/:id/publish`: Publish course version (requires `courses:publish`).
-* Seed Real Curriculum:
-  - Seed official CourseCity tutorial/ebook courses with structured modules and markdown/code lesson blocks.
+### 3. Next Exact Task: Phase 6 — Learner Experience & Progress Tracking
+* Progress & Enrollment Domain Services (`apps/api/src/services/learning.service.ts`):
+  - Lesson Progress Tracking: Idempotent toggle (`is_completed: boolean`), version increment for optimistic concurrency.
+  - Course Progress Calculation: Real-time recalculation of completed lessons vs total lessons in enrolled version.
+  - Bookmarks & Notes: Personal annotation storage anchored to lesson positions.
+  - Learning History: Activity audit log recording lesson visits, completions, and timestamps.
+* Learning Fastify Routes (`apps/api/src/routes/learning.routes.ts`):
+  - `GET /api/v1/enrollments`: Lists learner's active, completed, and in-progress enrollments.
+  - `POST /api/v1/progress`: Updates lesson completion status, recalculates course percentage, checks course completion requirements.
+  - `GET /api/v1/bookmarks` & `POST /api/v1/bookmarks` & `DELETE /api/v1/bookmarks/:id`: Learner bookmark manager.
+  - `GET /api/v1/notes` & `POST /api/v1/notes` & `DELETE /api/v1/notes/:id`: Personal markdown note manager.
+* Integration Test Suite (`apps/api/src/learning.test.ts`):
+  - Verifying enrollment listing, idempotent progress toggling, 100% course completion triggers, and bookmark/note persistence.

@@ -9,6 +9,7 @@ import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod
 import type { ProblemDetails } from '@coursecity/contracts';
 import { authPlugin } from './plugins/auth.plugin.js';
 import { authRoutes } from './routes/auth.routes.js';
+import { courseRoutes } from './routes/course.routes.js';
 
 export interface ServerOptions {
   logLevel?: string;
@@ -135,6 +136,9 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
 
   // Authentication Routes
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
+
+  // Courses, Catalog & Publisher Routes
+  await app.register(courseRoutes, { prefix: '/api/v1' });
 
   return app;
 }
