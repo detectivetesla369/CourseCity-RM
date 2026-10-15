@@ -213,8 +213,45 @@ export interface LessonProgressTable {
   enrollment_id: string;
   lesson_id: string;
   is_completed: boolean;
+  first_read_at: Date | null;
   completed_at: Date | null;
   progress_version: Generated<number>;
+}
+
+export interface CourseProgressTable {
+  id: Generated<string>;
+  enrollment_id: string;
+  percentage: number;
+  last_lesson_id: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface BookmarksTable {
+  id: Generated<string>;
+  user_id: string;
+  lesson_id: string;
+  title: string | null;
+  scroll_offset_percentage: number;
+  created_at: Generated<Date>;
+}
+
+export interface LearnerNotesTable {
+  id: Generated<string>;
+  user_id: string;
+  lesson_id: string;
+  content: string;
+  anchor_position: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LearningActivityTable {
+  id: Generated<string>;
+  user_id: string;
+  course_id: string;
+  action_type: string;
+  metadata: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface ReceiptsTable {
@@ -343,6 +380,10 @@ export interface Database {
   entitlements: EntitlementsTable;
   enrollments: EnrollmentsTable;
   lesson_progress: LessonProgressTable;
+  course_progress: CourseProgressTable;
+  bookmarks: BookmarksTable;
+  learner_notes: LearnerNotesTable;
+  learning_activity: LearningActivityTable;
   receipts: ReceiptsTable;
   receipt_signing_keys: ReceiptSigningKeysTable;
   certificates: CertificatesTable;

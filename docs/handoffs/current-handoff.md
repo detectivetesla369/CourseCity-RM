@@ -1,6 +1,6 @@
 # CourseCity 1.0 — Architecture Handoff Protocol
 
-## Current Phase: Phase 5 Complete -> Transition to Phase 6 (Learner Experience & Progress Tracking)
+## Current Phase: Phase 6 Complete -> Transition to Phase 7 (Payments, Reconciliation & Outbox Engine)
 
 ### 1. Completed Work
 
@@ -100,26 +100,42 @@
   - Course 2: *Modern TypeScript for Web Developers* (Free course with fundamentals and preview lessons).
 * Comprehensive integration test suite in `apps/api/src/courses.test.ts` verifying catalog filters, 404 handling, preview vs gated lesson access invariants, and publisher permission enforcement.
 
+#### Phase 6 — Learner Experience & Progress Tracking
+* Database schema interface updates in `packages/database/src/index.ts`:
+  - Added `first_read_at` to `LessonProgressTable`.
+  - Added `CourseProgressTable`, `BookmarksTable`, `LearnerNotesTable`, and `LearningActivityTable` to database interface.
+* Learning Domain Service in `apps/api/src/services/learning.service.ts`:
+  - `getEnrollments`: Lists active and completed enrollments with course version metadata and course progress percentage.
+  - `updateLessonProgress`: Idempotently updates lesson reading status (`is_completed`, `last_read_at`, `reading_time_seconds`), performs monotonic optimistic concurrency version increments (`version + 1`), recalculates overall course progress percentage in `course_progress`, and triggers course completion outbox event (`LEARNING_COURSE_COMPLETED`) when progress reaches 100%.
+  - `getBookmarks`, `addBookmark`, `removeBookmark`: Learner bookmark management anchored to lesson positions with course metadata.
+  - `getNotes`, `saveNote`, `deleteNote`: Learner markdown note management with lesson anchor references.
+* Learning Fastify Routes in `apps/api/src/routes/learning.routes.ts`:
+  - `GET /api/v1/enrollments`: Authenticated endpoint listing user enrollments.
+  - `POST /api/v1/progress`: Authenticated endpoint toggling lesson progress and returning recalculated percentage.
+  - `GET /api/v1/bookmarks` & `POST /api/v1/bookmarks` & `DELETE /api/v1/bookmarks/:id`: Authenticated bookmark routes.
+  - `GET /api/v1/notes` & `POST /api/v1/notes` & `DELETE /api/v1/notes/:id`: Authenticated note routes.
+* Comprehensive Integration Test Suite in `apps/api/src/learning.test.ts`:
+  - Verifying enrollment listing with progress percentage, progress toggle and percentage recalculation, 100% course completion trigger, 403 gating for non-enrolled users, and bookmark/note persistence.
+
 ---
 
 ### 2. Quality & Verification Gates Passed
 * **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks across all 10 packages/apps).
-* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 50 Vitest tests passed across all packages and apps: 33 in API, 4 in auth, 4 in validation, 6 in shared, 3 in database).
+* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 50 Vitest tests passed across all packages and apps: 40 in API, 4 in auth, 4 in validation, 6 in shared, 3 in database).
 * **Linter**: `pnpm run lint` passed (9/9 turbo tasks clean).
 * **Production Build**: `pnpm run build` passed (10/10 turbo tasks, Next.js optimized routes and Fastify server compiled).
 
 ---
 
-### 3. Next Exact Task: Phase 6 — Learner Experience & Progress Tracking
-* Progress & Enrollment Domain Services (`apps/api/src/services/learning.service.ts`):
-  - Lesson Progress Tracking: Idempotent toggle (`is_completed: boolean`), version increment for optimistic concurrency.
-  - Course Progress Calculation: Real-time recalculation of completed lessons vs total lessons in enrolled version.
-  - Bookmarks & Notes: Personal annotation storage anchored to lesson positions.
-  - Learning History: Activity audit log recording lesson visits, completions, and timestamps.
-* Learning Fastify Routes (`apps/api/src/routes/learning.routes.ts`):
-  - `GET /api/v1/enrollments`: Lists learner's active, completed, and in-progress enrollments.
-  - `POST /api/v1/progress`: Updates lesson completion status, recalculates course percentage, checks course completion requirements.
-  - `GET /api/v1/bookmarks` & `POST /api/v1/bookmarks` & `DELETE /api/v1/bookmarks/:id`: Learner bookmark manager.
-  - `GET /api/v1/notes` & `POST /api/v1/notes` & `DELETE /api/v1/notes/:id`: Personal markdown note manager.
-* Integration Test Suite (`apps/api/src/learning.test.ts`):
-  - Verifying enrollment listing, idempotent progress toggling, 100% course completion triggers, and bookmark/note persistence.
+### 3. Next Exact Task: Phase 7 — Payments, Reconciliation & Outbox Engine
+* Paystack Integration & `IPaymentProvider` contract:
+  - Implement Paystack provider (`apps/api/src/services/payments/paystack.provider.ts`) adhering to official Paystack API specs (minor currency units, HMAC SHA-512 signature verification, two-way verification).
+* `PaymentService` (`apps/api/src/services/payment.service.ts`):
+  - Order creation (`POST /api/v1/orders`) with idempotency key locking.
+  - Payment initialization (`POST /api/v1/payments/initialize/:orderId`).
+  - Webhook handler (`POST /api/v1/payments/webhook`) with HMAC SHA-512 signature verification.
+  - Two-way verification (`GET /api/v1/payments/verify/:reference` or background sync).
+  - Deterministic row-locking transaction (`Order -> Payment -> Entitlement -> Enrollment`) to prevent deadlocks and double fulfillment.
+  - Outbox event emission: `COMMERCE_ORDER_PAID`, `COMMERCE_PAYMENT_VERIFIED`, `COMMERCE_ENTITLEMENT_GRANTED`, `COMMERCE_ENROLLMENT_CREATED`.
+* `OutboxProcessor` worker to process outbox events via BullMQ / Redis or scheduled polling.
+* Integration tests in `apps/api/src/payments.test.ts`.

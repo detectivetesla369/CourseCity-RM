@@ -10,6 +10,7 @@ import type { ProblemDetails } from '@coursecity/contracts';
 import { authPlugin } from './plugins/auth.plugin.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { courseRoutes } from './routes/course.routes.js';
+import { learningRoutes } from './routes/learning.routes.js';
 
 export interface ServerOptions {
   logLevel?: string;
@@ -139,6 +140,9 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
 
   // Courses, Catalog & Publisher Routes
   await app.register(courseRoutes, { prefix: '/api/v1' });
+
+  // Learning, Progress & Personal Annotations
+  await app.register(learningRoutes, { prefix: '/api/v1' });
 
   return app;
 }
