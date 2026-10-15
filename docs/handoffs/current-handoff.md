@@ -1,6 +1,6 @@
 # CourseCity 1.0 — Architecture Handoff Protocol
 
-## Current Phase: Phase 6 Complete -> Transition to Phase 7 (Payments, Reconciliation & Outbox Engine)
+## Current Phase: Phase 7 & 8 Complete -> Transition to Phase 9 (Assessments, Quizzes, Grading & Credentials Engine)
 
 ### 1. Completed Work
 
@@ -117,25 +117,58 @@
 * Comprehensive Integration Test Suite in `apps/api/src/learning.test.ts`:
   - Verifying enrollment listing with progress percentage, progress toggle and percentage recalculation, 100% course completion trigger, 403 gating for non-enrolled users, and bookmark/note persistence.
 
+#### Phase 7 & 8 — Payments, Reconciliation, Outbox Engine & Cryptographic Receipts
+* Contracts & Providers (`packages/contracts/src/index.ts` & `apps/api/src/services/payments/paystack.provider.ts`):
+  - `IPaymentProvider` abstraction contract with `initializePayment`, `verifyPayment`, `verifyWebhookSignature`, and `processRefund`.
+  - `PaystackPaymentProvider`: HMAC-SHA512 webhook signature verification with timing-safe comparison, independent outbound transaction verification (`GET /transaction/verify/:reference`), integer minor currency unit handling, and test/mock harness.
+* Payment & Commerce Service (`apps/api/src/services/payment.service.ts`):
+  - `createOrder`: Idempotency key locking (72-hour TTL), course price validation, free course rejection, duplicate enrollment guards, and `COMMERCE_ORDER_CREATED` outbox emission.
+  - `enrollFreeCourse`: Free course entitlement activation, enrollment generation, progress initialization at 0%, and `COMMERCE_ENROLLMENT_CREATED` outbox emission.
+  - `initializePayment`: Order ownership authorization check, `PENDING_PAYMENT` state transition, `payments` row creation in `INITIATED` status, and `COMMERCE_PAYMENT_INITIATED` outbox emission.
+  - `verifyAndFulfillPayment`: Double-verification defense, amount/currency invariant checks, `payment_reconciliations` mismatch logging, and **atomic deterministic row-locking transaction** (`Order -> Payment -> Entitlement -> Enrollment`) to prevent deadlocks and double fulfillment.
+  - `handleWebhook`: Inbound HMAC-SHA512 signature validation and idempotent dispatch.
+* Cryptographic Receipts Engine (`apps/api/src/services/receipt.service.ts`):
+  - RFC 8785 JSON Canonicalization Scheme (JCS) deterministic payload formatting.
+  - SHA-256 payload digest fingerprinting and Ed25519 asymmetric digital signature signing.
+  - Public verification engine (`GET /api/v1/receipts/verify/:receiptReference`) executing 6 consecutive cryptographic assertions:
+    1. Record Existence.
+    2. Revocation Check.
+    3. Payload Fingerprint Invariant.
+    4. Key Registry Lookup.
+    5. Cryptographic Signature Validation.
+    6. Payment Linkage & State Invariant.
+  - PII privacy protection with masked customer names and hashed emails on public lookups.
+* Asynchronous Outbox Worker (`apps/api/src/services/outbox.processor.ts`):
+  - Batch event processing for `AUTH_USER_REGISTERED`, `COMMERCE_PAYMENT_VERIFIED`, `COMMERCE_RECEIPT_ISSUED`, `COMMERCE_ENROLLMENT_CREATED`, `LEARNING_COURSE_COMPLETED`.
+  - Side-effect event logging into `email_events` and `notifications`.
+  - Automatic retry incrementing with dead-letter queue dispatch (`dead_letter_events`) after 5 failed attempts.
+* API Routes & Client (`apps/api/src/routes/payment.routes.ts`, `receipt.routes.ts`, & `packages/api-client`):
+  - Fastify raw body content-type buffer parsing.
+  - `POST /api/v1/orders`, `POST /api/v1/enrollments/free`, `POST /api/v1/payments/initialize/:orderId`, `GET /api/v1/payments/verify/:reference`, `POST /api/v1/payments/webhook`, `GET /api/v1/orders/:orderId`.
+  - `GET /api/v1/receipts/verify/:receiptReference`, `GET /api/v1/receipts/:receiptReference`.
+  - `ApiClient` methods: `createOrder`, `enrollFree`, `initializePayment`, `verifyPayment`, `verifyReceipt`.
+* Comprehensive Test Suite (`apps/api/src/payments.test.ts`):
+  - 21 unit & integration tests validating route guards, idempotency caching, free enrollment, payment initialization, webhook HMAC validation, mismatch reconciliation flags, atomic lock ordering, Ed25519 verification outcomes (`VERIFIED`, `NOT_FOUND`, `TAMPERED`, `REVOKED`), and outbox dead-letter queue behavior.
+
 ---
 
 ### 2. Quality & Verification Gates Passed
-* **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks across all 10 packages/apps).
-* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 50 Vitest tests passed across all packages and apps: 40 in API, 4 in auth, 4 in validation, 6 in shared, 3 in database).
+* **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks clean across all 10 packages/apps).
+* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 78 Vitest tests passed across all packages and apps: 61 in API, 4 in auth, 4 in validation, 6 in shared, 3 in database).
 * **Linter**: `pnpm run lint` passed (9/9 turbo tasks clean).
 * **Production Build**: `pnpm run build` passed (10/10 turbo tasks, Next.js optimized routes and Fastify server compiled).
 
 ---
 
-### 3. Next Exact Task: Phase 7 — Payments, Reconciliation & Outbox Engine
-* Paystack Integration & `IPaymentProvider` contract:
-  - Implement Paystack provider (`apps/api/src/services/payments/paystack.provider.ts`) adhering to official Paystack API specs (minor currency units, HMAC SHA-512 signature verification, two-way verification).
-* `PaymentService` (`apps/api/src/services/payment.service.ts`):
-  - Order creation (`POST /api/v1/orders`) with idempotency key locking.
-  - Payment initialization (`POST /api/v1/payments/initialize/:orderId`).
-  - Webhook handler (`POST /api/v1/payments/webhook`) with HMAC SHA-512 signature verification.
-  - Two-way verification (`GET /api/v1/payments/verify/:reference` or background sync).
-  - Deterministic row-locking transaction (`Order -> Payment -> Entitlement -> Enrollment`) to prevent deadlocks and double fulfillment.
-  - Outbox event emission: `COMMERCE_ORDER_PAID`, `COMMERCE_PAYMENT_VERIFIED`, `COMMERCE_ENTITLEMENT_GRANTED`, `COMMERCE_ENROLLMENT_CREATED`.
-* `OutboxProcessor` worker to process outbox events via BullMQ / Redis or scheduled polling.
-* Integration tests in `apps/api/src/payments.test.ts`.
+### 3. Next Exact Task: Phase 9 — Assessments, Quizzes, Grading & Credentials Engine
+* Assessment Domain Service (`apps/api/src/services/assessment.service.ts`):
+  - Quiz and examination state machines (`NOT_STARTED` -> `IN_PROGRESS` -> `SUBMITTED` -> `GRADING` -> `GRADED`).
+  - Automated question evaluation for objective multiple-choice questions.
+  - Assignment submission handling and manual gradebook recording.
+  - Course completion criteria verification: overall grade calculation based on course grading rules.
+* Credentials & Certificate Engine (`apps/api/src/services/certificate.service.ts`):
+  - Tamper-evident Ed25519 signed digital certificates issued upon qualifying course completion.
+  - Public verification API (`GET /api/v1/certificates/verify/:certificateReference`).
+* Fastify Assessment Routes (`apps/api/src/routes/assessment.routes.ts`):
+  - `POST /api/v1/quizzes/:id/submit`, `POST /api/v1/assignments/:id/submit`, `GET /api/v1/certificates/verify/:reference`.
+* Integration Test Suite (`apps/api/src/assessments.test.ts`).

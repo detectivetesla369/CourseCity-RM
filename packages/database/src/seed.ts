@@ -168,10 +168,17 @@ async function seed() {
       .insertInto('receipt_signing_keys')
       .values({
         key_id: 'cc_ed25519_2026_v1',
-        public_key_pem: 'MCowBQYDK2VwAyEAGb5r8XwVv7h1gX0b6Y8a2b3c4d5e6f7a8b9c0d1e2f3=',
+        public_key_pem:
+          '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA4W5K26J77fy5VJeqC+iO/uLQJLFQIQBVfBfxLyjVAdM=\n-----END PUBLIC KEY-----\n',
         is_active: true,
       })
-      .onConflict((oc) => oc.column('key_id').doNothing())
+      .onConflict((oc) =>
+        oc.column('key_id').doUpdateSet({
+          public_key_pem:
+            '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA4W5K26J77fy5VJeqC+iO/uLQJLFQIQBVfBfxLyjVAdM=\n-----END PUBLIC KEY-----\n',
+          is_active: true,
+        }),
+      )
       .execute();
 
     // 5. Seed Official Platform Courses & Curriculum

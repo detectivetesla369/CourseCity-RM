@@ -198,12 +198,71 @@ export interface OrderDTO {
   items: OrderItemDTO[];
 }
 
+export interface PaymentDTO {
+  id: string;
+  paymentReference: string;
+  orderId: string;
+  provider: string;
+  providerReference: string;
+  providerTransactionId?: string;
+  amountMinor: number;
+  currency: string;
+  status: PaymentStatus;
+  createdAt: string;
+}
+
 export interface PaymentInitializationResponse {
   orderReference: string;
   paymentReference: string;
   authorizationUrl: string;
   amountMinor: number;
   currency: string;
+}
+
+export interface InitializePaymentParams {
+  orderReference: string;
+  paymentReference: string;
+  amountMinor: number;
+  currency: string;
+  customerEmail: string;
+  customerName?: string;
+  callbackUrl: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PaymentInitializationResult {
+  providerReference: string;
+  authorizationUrl: string;
+  accessCode?: string;
+}
+
+export interface VerifyPaymentResult {
+  isSuccessful: boolean;
+  providerTransactionId: string;
+  providerReference: string;
+  amountMinor: number;
+  currency: string;
+  paidAt: Date;
+  rawResponse: Record<string, unknown>;
+}
+
+export interface RefundResult {
+  isSuccessful: boolean;
+  refundReference: string;
+  amountMinor: number;
+  rawResponse?: Record<string, unknown>;
+}
+
+export interface IPaymentProvider {
+  readonly providerName: string;
+  initializePayment(params: InitializePaymentParams): Promise<PaymentInitializationResult>;
+  verifyPayment(providerReference: string): Promise<VerifyPaymentResult>;
+  verifyWebhookSignature(rawBody: Buffer | string, signatureHeader: string): boolean;
+  processRefund(
+    paymentReference: string,
+    amountMinor: number,
+    reason: string,
+  ): Promise<RefundResult>;
 }
 
 // ==========================================

@@ -10,6 +10,7 @@ import type {
   PublisherType,
   OrderStatus,
   PaymentStatus,
+  PaymentReconciliationStatus,
   EntitlementStatus,
   EnrollmentStatus,
   ReceiptStatus,
@@ -188,6 +189,26 @@ export interface PaymentsTable {
   updated_at: Generated<Date>;
 }
 
+export interface PaymentEventsTable {
+  id: Generated<string>;
+  payment_id: string | null;
+  event_type: string;
+  payload: string; // JSON string
+  created_at: Generated<Date>;
+}
+
+export interface PaymentReconciliationsTable {
+  id: Generated<string>;
+  payment_id: string | null;
+  provider_reference: string;
+  expected_amount_minor: number;
+  provider_amount_minor: number | null;
+  status: PaymentReconciliationStatus;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface EntitlementsTable {
   id: Generated<string>;
   user_id: string;
@@ -272,6 +293,24 @@ export interface ReceiptsTable {
   revocation_reason: string | null;
 }
 
+export interface ReceiptEventsTable {
+  id: Generated<string>;
+  receipt_id: string;
+  event_name: string;
+  payload: string; // JSON string
+  created_at: Generated<Date>;
+}
+
+export interface ReceiptVerificationsTable {
+  id: Generated<string>;
+  receipt_id: string | null;
+  receipt_reference: string;
+  result: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  checked_at: Generated<Date>;
+}
+
 export interface CertificatesTable {
   id: Generated<string>;
   certificate_reference: string;
@@ -300,6 +339,35 @@ export interface OutboxEventsTable {
   retry_count: Generated<number>;
   created_at: Generated<Date>;
   processed_at: Date | null;
+}
+
+export interface DeadLetterEventsTable {
+  id: Generated<string>;
+  original_event_id: string;
+  event_name: string;
+  payload: string; // JSON string
+  last_error: string;
+  created_at: Generated<Date>;
+}
+
+export interface NotificationsTable {
+  id: Generated<string>;
+  user_id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: Generated<Date>;
+}
+
+export interface EmailEventsTable {
+  id: Generated<string>;
+  user_id: string | null;
+  recipient_email: string;
+  template_name: string;
+  status: string;
+  provider_message_id: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface IdempotencyKeysTable {
@@ -377,6 +445,8 @@ export interface Database {
   orders: OrdersTable;
   order_items: OrderItemsTable;
   payments: PaymentsTable;
+  payment_events: PaymentEventsTable;
+  payment_reconciliations: PaymentReconciliationsTable;
   entitlements: EntitlementsTable;
   enrollments: EnrollmentsTable;
   lesson_progress: LessonProgressTable;
@@ -385,9 +455,14 @@ export interface Database {
   learner_notes: LearnerNotesTable;
   learning_activity: LearningActivityTable;
   receipts: ReceiptsTable;
+  receipt_events: ReceiptEventsTable;
+  receipt_verifications: ReceiptVerificationsTable;
   receipt_signing_keys: ReceiptSigningKeysTable;
   certificates: CertificatesTable;
   outbox_events: OutboxEventsTable;
+  dead_letter_events: DeadLetterEventsTable;
+  notifications: NotificationsTable;
+  email_events: EmailEventsTable;
   idempotency_keys: IdempotencyKeysTable;
 }
 

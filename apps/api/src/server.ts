@@ -11,6 +11,8 @@ import { authPlugin } from './plugins/auth.plugin.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { courseRoutes } from './routes/course.routes.js';
 import { learningRoutes } from './routes/learning.routes.js';
+import { paymentRoutes } from './routes/payment.routes.js';
+import { receiptRoutes } from './routes/receipt.routes.js';
 
 export interface ServerOptions {
   logLevel?: string;
@@ -33,6 +35,17 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   // Fastify Zod Type Providers
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  // Capture raw buffer body for webhook signature verification
+  app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+    try {
+      (req as unknown as { rawBody: Buffer | string }).rawBody = body;
+      const json = JSON.parse(body.toString('utf8'));
+      done(null, json);
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
 
   // Security Plugins
   await app.register(helmet, {
@@ -143,6 +156,12 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
 
   // Learning, Progress & Personal Annotations
   await app.register(learningRoutes, { prefix: '/api/v1' });
+
+  // Payment, Checkout & Commerce Routes
+  await app.register(paymentRoutes, { prefix: '/api/v1' });
+
+  // Cryptographic Receipts & Public Verification Routes
+  await app.register(receiptRoutes, { prefix: '/api/v1' });
 
   return app;
 }

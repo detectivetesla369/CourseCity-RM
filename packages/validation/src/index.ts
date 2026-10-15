@@ -70,6 +70,16 @@ export const createOrderInputSchema = z.object({
 });
 export type CreateOrderInput = z.infer<typeof createOrderInputSchema>;
 
+export const freeEnrollmentInputSchema = z.object({
+  courseId: z.string().uuid('Valid course ID is required'),
+});
+export type FreeEnrollmentInput = z.infer<typeof freeEnrollmentInputSchema>;
+
+export const initializePaymentInputSchema = z.object({
+  callbackUrl: z.string().url('Callback URL must be a valid URL').optional(),
+});
+export type InitializePaymentInput = z.infer<typeof initializePaymentInputSchema>;
+
 // ==========================================
 // 3. LEARNING & PROGRESS SCHEMAS
 // ==========================================

@@ -199,10 +199,22 @@ export class ApiClient {
     });
   }
 
-  async initializePayment(orderId: string): Promise<PaymentInitializationResponse> {
+  async enrollFree(courseId: string): Promise<{ enrollmentId: string; courseId: string; status: string; alreadyEnrolled: boolean }> {
+    return this.request<{ enrollmentId: string; courseId: string; status: string; alreadyEnrolled: boolean }>('/api/v1/enrollments/free', {
+      method: 'POST',
+      body: JSON.stringify({ courseId }),
+    });
+  }
+
+  async initializePayment(orderId: string, callbackUrl?: string): Promise<PaymentInitializationResponse> {
     return this.request<PaymentInitializationResponse>(`/api/v1/payments/initialize/${orderId}`, {
       method: 'POST',
+      body: callbackUrl ? JSON.stringify({ callbackUrl }) : undefined,
     });
+  }
+
+  async verifyPayment(reference: string): Promise<{ isSuccessful: boolean; orderStatus: string; paymentStatus: string; receiptReference?: string }> {
+    return this.request<{ isSuccessful: boolean; orderStatus: string; paymentStatus: string; receiptReference?: string }>(`/api/v1/payments/verify/${reference}`);
   }
 
   // --- Public Verifications ---
