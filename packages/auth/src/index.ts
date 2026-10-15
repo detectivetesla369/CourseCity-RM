@@ -128,3 +128,78 @@ export function hasPermission(roleName: string, requiredPermission: string): boo
 export function hasAnyPermission(roles: string[], requiredPermission: string): boolean {
   return roles.some((role) => hasPermission(role, requiredPermission));
 }
+
+// ==========================================
+// 4. ACCESS TOKEN (JWT HS256) HELPERS
+// ==========================================
+export interface AccessTokenPayload {
+  sub: string;
+  email: string;
+  sessionId: string;
+  roles: string[];
+  exp: number; // in seconds
+  iat?: number;
+}
+
+function base64UrlEncode(str: string | Buffer): string {
+  const buf = typeof str === 'string' ? Buffer.from(str, 'utf8') : str;
+  return buf.toString('base64url');
+}
+
+function base64UrlDecode(str: string): string {
+  return Buffer.from(str, 'base64url').toString('utf8');
+}
+
+export function signAccessToken(payload: AccessTokenPayload, secret: string): string {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const now = Math.floor(Date.now() / 1000);
+  const fullPayload = {
+    iat: now,
+    ...payload,
+  };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  const data = `${encodedHeader}.${encodedPayload}`;
+
+  const signature = crypto.createHmac('sha256', secret).update(data).digest();
+  const encodedSignature = base64UrlEncode(signature);
+
+  return `${data}.${encodedSignature}`;
+}
+
+export function verifyAccessToken(token: string, secret: string): AccessTokenPayload {
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    throw new Error('Malformed token');
+  }
+
+  const [encodedHeader, encodedPayload, encodedSignature] = parts;
+  if (!encodedHeader || !encodedPayload || !encodedSignature) {
+    throw new Error('Malformed token');
+  }
+  const data = `${encodedHeader}.${encodedPayload}`;
+  const expectedSignature = crypto.createHmac('sha256', secret).update(data).digest();
+  const actualSignature = Buffer.from(encodedSignature, 'base64url');
+
+  if (
+    expectedSignature.length !== actualSignature.length ||
+    !crypto.timingSafeEqual(expectedSignature, actualSignature)
+  ) {
+    throw new Error('Invalid token signature');
+  }
+
+  const header = JSON.parse(base64UrlDecode(encodedHeader));
+  if (header.alg !== 'HS256') {
+    throw new Error('Unsupported algorithm');
+  }
+
+  const payload: AccessTokenPayload = JSON.parse(base64UrlDecode(encodedPayload));
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.exp && payload.exp < now) {
+    throw new Error('Token expired');
+  }
+
+  return payload;
+}
+

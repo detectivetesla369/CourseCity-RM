@@ -68,6 +68,24 @@ export interface RefreshTokensTable {
   created_at: Generated<Date>;
 }
 
+export interface EmailVerificationTokensTable {
+  id: Generated<string>;
+  user_id: string;
+  token_hash: string;
+  expires_at: Date;
+  used_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface PasswordResetTokensTable {
+  id: Generated<string>;
+  user_id: string;
+  token_hash: string;
+  expires_at: Date;
+  used_at: Date | null;
+  created_at: Generated<Date>;
+}
+
 export interface PublishersTable {
   id: Generated<string>;
   name: string;
@@ -307,6 +325,8 @@ export interface Database {
   user_profiles: UserProfilesTable;
   sessions: SessionsTable;
   refresh_tokens: RefreshTokensTable;
+  email_verification_tokens: EmailVerificationTokensTable;
+  password_reset_tokens: PasswordResetTokensTable;
   roles: RolesTable;
   permissions: PermissionsTable;
   role_permissions: RolePermissionsTable;

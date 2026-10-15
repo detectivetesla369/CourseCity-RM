@@ -2,6 +2,7 @@ import type {
   ProblemDetails,
   AuthResponseDTO,
   AuthUser,
+  AuthSessionDTO,
   CourseDetailDTO,
   EnrollmentDTO,
   OrderDTO,
@@ -12,6 +13,9 @@ import type {
 import type {
   SignupInput,
   SigninInput,
+  VerifyEmailInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
   CatalogFilterQuery,
   CreateOrderInput,
   UpdateProgressInput,
@@ -94,8 +98,8 @@ export class ApiClient {
   }
 
   // --- Auth Endpoints ---
-  async signup(data: SignupInput): Promise<AuthResponseDTO> {
-    return this.request<AuthResponseDTO>('/api/v1/auth/signup', {
+  async signup(data: SignupInput): Promise<{ message: string; userId: string; email: string }> {
+    return this.request<{ message: string; userId: string; email: string }>('/api/v1/auth/signup', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -108,12 +112,50 @@ export class ApiClient {
     });
   }
 
+  async refresh(refreshToken?: string): Promise<{ accessToken: string; refreshToken: string; expiresInSeconds: number }> {
+    return this.request<{ accessToken: string; refreshToken: string; expiresInSeconds: number }>('/api/v1/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    });
+  }
+
   async signout(): Promise<void> {
     return this.request<void>('/api/v1/auth/signout', { method: 'POST' });
   }
 
-  async getMe(): Promise<AuthUser> {
-    return this.request<AuthUser>('/api/v1/auth/me');
+  async verifyEmail(data: VerifyEmailInput): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/api/v1/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async forgotPassword(data: ForgotPasswordInput): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/api/v1/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resetPassword(data: ResetPasswordInput): Promise<{ success: boolean; message: string }> {
+    return this.request<{ success: boolean; message: string }>('/api/v1/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMe(): Promise<{ user: AuthUser }> {
+    return this.request<{ user: AuthUser }>('/api/v1/auth/me');
+  }
+
+  async getSessions(): Promise<{ sessions: AuthSessionDTO[] }> {
+    return this.request<{ sessions: AuthSessionDTO[] }>('/api/v1/auth/sessions');
+  }
+
+  async revokeSession(sessionId: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/api/v1/auth/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
   }
 
   // --- Catalog & Courses ---

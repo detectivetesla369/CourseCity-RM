@@ -56,6 +56,11 @@ export const changePasswordInputSchema = z.object({
 });
 export type ChangePasswordInput = z.infer<typeof changePasswordInputSchema>;
 
+export const verifyEmailInputSchema = z.object({
+  token: z.string().min(10, 'Valid verification token is required'),
+});
+export type VerifyEmailInput = z.infer<typeof verifyEmailInputSchema>;
+
 // ==========================================
 // 2. COMMERCE SCHEMAS
 // ==========================================

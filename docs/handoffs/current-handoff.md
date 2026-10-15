@@ -1,6 +1,6 @@
 # CourseCity 1.0 — Architecture Handoff Protocol
 
-## Current Phase: Phase 3 Complete -> Transition to Phase 4 (Authentication & Authorization)
+## Current Phase: Phase 4 Complete -> Transition to Phase 5 (Courses, Curriculum & Publisher Engine)
 
 ### 1. Completed Work
 
@@ -55,41 +55,52 @@
   - `0007_assessments_and_credentials.ts`: `assessments`, `assessment_questions`, `question_options`, `assessment_attempts`, `assessment_answers`, `assessment_results`, `assignments`, `assignment_submissions`, `assignment_grades`, `examinations`, `examination_attempts`, `examination_answers`, `examination_results`, `gradebook_entries`, `grading_rules`, `certificates`, `certificate_events`.
   - `0008_receipts_and_verification.ts`: `receipts`, `receipt_events`, `receipt_verifications`, `receipt_signing_keys`.
   - `0009_operations_and_platform.ts`: `idempotency_keys`, `resource_versions`, `outbox_events`, `dead_letter_events`, `background_jobs`, `background_job_runs`, `reconciliation_runs`, `notifications`, `notification_preferences`, `email_events`, `whatsapp_events`, `api_clients`, `api_keys`, `api_scopes`, `api_key_scopes`, `api_usage_events`, `webhook_endpoints`, `webhook_deliveries`, `audit_logs`, `security_events`, `admin_actions`, `system_settings`, `feature_flags`, `maintenance_windows`, `system_status_events`, `service_status_snapshots`, `incidents`.
-* Implemented development & test seed script (`packages/database/src/seed.ts`):
-  - Pre-seeds platform roles and permission mappings.
-  - Pre-seeds CourseCity official platform publisher.
-  - Pre-seeds SuperAdmin user with Argon2id hash and MFA enabled.
-  - Pre-seeds Learner demo user with profile and role assignments.
-  - Pre-seeds Ed25519 cryptographic public verification key.
+* Implemented development & test seed script (`packages/database/src/seed.ts`).
 * Created unit test suite (`packages/database/src/index.test.ts`) validating factory, migrator, and verifying all 9 migrations export reversible `up` and `down` handlers.
+
+#### Phase 4 — Authentication & Authorization
+* Implemented core authentication domain and services:
+  - Argon2id password security (64MB memory, 3 iterations, 4 threads, timing-safe evaluation).
+  - High-entropy cryptographic token generator (32-byte entropy with SHA-256 hash storage).
+  - Access token HS256 JWT utilities (`signAccessToken`, `verifyAccessToken`) with constant-time signature verification.
+  - Multi-role permission authorization matrix (`ROLE_PERMISSIONS`, `hasPermission`, `hasAnyPermission`).
+  - `AuthService` in `apps/api/src/services/auth.service.ts`:
+    - `signup`: Account creation, password hashing, transactional outbox `AUTH_USER_REGISTERED` event, and email verification token generation.
+    - `signin`: Email + password authentication, session creation, refresh token generation, access JWT issue, and HttpOnly cookies.
+    - `refresh`: Refresh token rotation with **token reuse detection** (immediately invalidates all tokens and active sessions if a revoked token is replayed).
+    - `signout`: Revokes current session and refresh token family; clears cookies.
+    - `verifyEmail`: Consumes single-use token and transitions user status to `ACTIVE`.
+    - `forgotPassword` & `resetPassword`: Constant-time reset request with transactional outbox, password update, and session revocation.
+    - `getMe`: Profile and role retrieval.
+    - `listSessions` & `revokeSession`: Session inspection and revocation controls.
+* Built Fastify auth plugin (`apps/api/src/plugins/auth.plugin.ts`):
+  - `fastify.authenticate`: Extracts token from Bearer header or `cc_access_token` cookie, validates signature/expiration, decorates `request.user`.
+  - `fastify.requirePermission(permission)`: Enforces fine-grained RBAC permission guards with RFC 7807 problem details.
+* Implemented complete auth route handlers (`apps/api/src/routes/auth.routes.ts`) registered under `/api/v1/auth`.
+* Extended typed `ApiClient` (`packages/api-client/src/index.ts`) with all authentication methods.
+* Created comprehensive integration tests (`apps/api/src/auth.test.ts`) verifying input validation, RFC 7807 error formats, token expiry, tampering rejection, RBAC matrix, and token reuse family revocation.
 
 ---
 
 ### 2. Quality & Verification Gates Passed
 * **Typecheck**: `pnpm run typecheck` passed (18/18 turbo tasks across all 10 packages/apps).
-* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 16 Vitest tests passed across all packages and apps).
+* **Unit Tests**: `pnpm run test` passed (13/13 turbo tasks, 39 Vitest tests passed across all packages and apps).
 * **Linter**: `pnpm run lint` passed (9/9 turbo tasks clean).
 * **Production Build**: `pnpm run build` passed (10/10 turbo tasks, Next.js optimized routes and Fastify server compiled).
 
 ---
 
-### 3. Next Exact Task: Phase 4 — Authentication & Authorization
-* Fastify Authentication Routes and Services in `apps/api`:
-  - `POST /api/v1/auth/signup`: Validates input with Zod, checks unique email, hashes password with Argon2id, generates email verification token, creates user and profile, fires Outbox event `AUTH_USER_REGISTERED`.
-  - `POST /api/v1/auth/signin`: Validates credentials, checks account status, creates session, generates cryptographically random refresh token (stored as SHA-256 hash) and short-lived access JWT/token, sets `HttpOnly`, `SameSite=Strict` secure cookies.
-  - `POST /api/v1/auth/signout`: Invalidates active session and refresh token family.
-  - `POST /api/v1/auth/refresh`: Refresh token rotation with reuse detection (invalidates entire token family if already consumed).
-  - `POST /api/v1/auth/verify-email`: Consumes single-use token, activates user, sets `email_verified_at`.
-  - `POST /api/v1/auth/forgot-password`: Generates secure single-use reset token and dispatches email outbox event.
-  - `POST /api/v1/auth/reset-password`: Consumes reset token and updates Argon2id password hash.
-  - `GET /api/v1/auth/me`: Returns authenticated user identity, profile, and roles.
-  - `GET /api/v1/auth/sessions`: Lists active sessions with device/IP info.
-  - `DELETE /api/v1/auth/sessions/:id`: Revokes specific session.
-* Fastify Authentication & Authorization Plugins:
-  - `authPlugin`: Parses and verifies session / bearer tokens, populates `request.user`.
-  - `requireAuth`: Guards protected routes with 401 Unauthorized Problem Details.
-  - `requirePermission`: Enforces scoped RBAC permissions (e.g. `COURSE_CREATE`, `ADMIN_USERS_MANAGE`, with publisher/org scoping).
-* Comprehensive Integration Tests for Auth Security Invariants:
-  - Password hashing verification (Argon2id).
-  - Token rotation and reuse detection.
-  - Publisher-scoped authorization isolation.
+### 3. Next Exact Task: Phase 5 — Courses, Curriculum & Publisher Engine
+* Course Domain Entities & Services:
+  - Publishers & Organizations: Platform publisher, instructor publisher, organization publisher scoping.
+  - Immutable Course Versions: Draft -> Ready for Review -> Published -> Superseded lifecycle.
+  - Course Modules, Lessons, and Rich Block types (`HEADING`, `PARAGRAPH`, `IMAGE`, `CODE`, `TABLE`, `CALLOUT`, `QUOTE`, `DIAGRAM`, `FORMULA`, `RESOURCE`, `EXERCISE`).
+* Fastify Course Routes (`apps/api/src/routes/course.routes.ts`):
+  - `GET /api/v1/catalog`: Search, filter by category/level/price, pagination, published versions only.
+  - `GET /api/v1/courses/:slug`: Course detail page with module/lesson outline, publisher info, pricing.
+  - `GET /api/v1/courses/:slug/lessons/:lessonSlug`: Lesson content retrieval (preview lessons public; paid lessons gated by entitlement/enrollment).
+  - `POST /api/v1/publisher/courses`: Create course draft (requires `courses:create` permission).
+  - `POST /api/v1/publisher/courses/:id/versions`: Create new course version.
+  - `POST /api/v1/publisher/courses/:id/publish`: Publish course version (requires `courses:publish`).
+* Seed Real Curriculum:
+  - Seed official CourseCity tutorial/ebook courses with structured modules and markdown/code lesson blocks.

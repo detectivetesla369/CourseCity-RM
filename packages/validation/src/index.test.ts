@@ -3,6 +3,7 @@ import {
   signupInputSchema,
   receiptVerificationParamsSchema,
   catalogFilterQuerySchema,
+  verifyEmailInputSchema,
 } from './index.js';
 
 describe('Validation Schemas Test Suite', () => {
@@ -36,4 +37,13 @@ describe('Validation Schemas Test Suite', () => {
     expect(result.limit).toBe(20);
     expect(result.sort).toBe('newest');
   });
+
+  it('validates email verification token schema', () => {
+    const valid = { token: 'a-secure-verification-token-string' };
+    expect(verifyEmailInputSchema.safeParse(valid).success).toBe(true);
+
+    const invalid = { token: 'short' };
+    expect(verifyEmailInputSchema.safeParse(invalid).success).toBe(false);
+  });
 });
+

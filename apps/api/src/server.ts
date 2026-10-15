@@ -7,6 +7,8 @@ import swagger from '@fastify/swagger';
 import scalar from '@scalar/fastify-api-reference';
 import { serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { ProblemDetails } from '@coursecity/contracts';
+import { authPlugin } from './plugins/auth.plugin.js';
+import { authRoutes } from './routes/auth.routes.js';
 
 export interface ServerOptions {
   logLevel?: string;
@@ -24,7 +26,6 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
         'req.body.currentPassword',
       ],
     },
-    disableRequestLogging: false,
   });
 
   // Fastify Zod Type Providers
@@ -75,6 +76,9 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
       theme: 'alternate',
     },
   });
+
+  // Authentication & Authorization Plugin
+  await app.register(authPlugin);
 
   // Global RFC 7807 Error Handler
   app.setErrorHandler((error: FastifyError | Error, request, reply) => {
@@ -128,6 +132,9 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
       docs: '/docs',
     };
   });
+
+  // Authentication Routes
+  await app.register(authRoutes, { prefix: '/api/v1/auth' });
 
   return app;
 }
