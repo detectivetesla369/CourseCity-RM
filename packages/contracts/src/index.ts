@@ -257,7 +257,7 @@ export interface IPaymentProvider {
   readonly providerName: string;
   initializePayment(params: InitializePaymentParams): Promise<PaymentInitializationResult>;
   verifyPayment(providerReference: string): Promise<VerifyPaymentResult>;
-  verifyWebhookSignature(rawBody: Buffer | string, signatureHeader: string): boolean;
+  verifyWebhookSignature(rawBody: Uint8Array | string, signatureHeader: string): boolean;
   processRefund(
     paymentReference: string,
     amountMinor: number,
