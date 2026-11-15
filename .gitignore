@@ -14,6 +14,7 @@ build
 .next
 out
 .turbo
+*.tsbuildinfo
 
 # Logs
 npm-debug.log*

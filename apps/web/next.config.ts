@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ['*.ngrok-free.app', '*.ngrok.app', 'localhost:3000'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: [
     '@coursecity/contracts',
