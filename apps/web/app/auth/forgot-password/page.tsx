@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useState, useRef, useEffect, Suspense, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
@@ -9,7 +9,7 @@ import { FormField, SubmitButton, FormAlert } from '@/components/auth/FormContro
 import { validateEmail } from '@/components/auth/validation';
 import { useAuth, ApiClientError } from '@/lib/auth-context';
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const { api } = useAuth();
 
@@ -113,5 +113,13 @@ export default function ForgotPasswordPage() {
         </SubmitButton>
       </form>
     </AuthShell>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }

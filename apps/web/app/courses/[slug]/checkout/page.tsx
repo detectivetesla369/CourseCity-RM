@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -21,7 +21,7 @@ import type { CourseDetailDTO } from '@coursecity/contracts';
 
 type CheckoutStep = 'loading' | 'review' | 'processing' | 'verifying' | 'success' | 'failed' | 'error';
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -318,5 +318,13 @@ export default function CheckoutPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckoutContent />
+    </Suspense>
   );
 }

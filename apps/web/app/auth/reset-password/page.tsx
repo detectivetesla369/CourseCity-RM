@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useState, useRef, useEffect, Suspense, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
@@ -9,7 +9,7 @@ import { FormField, SubmitButton, FormAlert } from '@/components/auth/FormContro
 import { validateNewPassword } from '@/components/auth/validation';
 import { useAuth, ApiClientError } from '@/lib/auth-context';
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const { api } = useAuth();
@@ -151,5 +151,13 @@ export default function ResetPasswordPage() {
         </SubmitButton>
       </form>
     </AuthShell>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

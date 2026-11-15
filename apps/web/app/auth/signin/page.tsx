@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, type FormEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell, AuthDivider, AuthTerms } from '@/components/auth/AuthShell';
@@ -13,7 +13,7 @@ import { useRedirectIfAuthenticated } from '@/lib/auth-guard';
 type Field = 'email' | 'password';
 type Errors = Partial<Record<Field, string | null>>;
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signIn } = useAuth();
@@ -184,5 +184,13 @@ export default function SignInPage() {
 
       <AuthTerms action="signing in" />
     </AuthShell>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignInContent />
+    </Suspense>
   );
 }
