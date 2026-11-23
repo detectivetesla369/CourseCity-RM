@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Bell,
   BookOpen,
   Search,
   Sparkles,
@@ -12,6 +11,7 @@ import { useAuth } from '@/lib/auth-context';
 import type { EnrollmentDTO } from '@coursecity/contracts';
 
 /* ─── New design system components ─── */
+import DashboardHeader from '@/components/learn/DashboardHeader';
 import StreamingNow from '@/components/learn/StreamingNow';
 import AdvancedSearchCard from '@/components/learn/AdvancedSearchCard';
 import WeekCalendar from '@/components/learn/WeekCalendar';
@@ -106,7 +106,6 @@ function ActiveDashboard({
   enrollments: EnrollmentDTO[];
   displayName: string;
 }) {
-  const firstName = displayName.split(' ')[0];
   const initials = displayName
     .split(' ')
     .map((n: string) => n[0])
@@ -158,46 +157,11 @@ function ActiveDashboard({
 
   return (
     <div className="space-y-8">
-      {/* ─── Greeting Header (30% white surface — clean card) ─── */}
-      <div className="overflow-hidden rounded-[20px] bg-white px-6 py-5 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1
-              className="text-[22px] font-bold text-neutral-800 lg:text-[26px]"
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              Hello, {firstName} 👋
-            </h1>
-            <p className="mt-1 text-[14px] text-neutral-500">
-              Welcome back! Let&apos;s continue learning.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Notification bell */}
-            <Link
-              href="/learn/notifications"
-              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-neutral-50 text-neutral-500 transition-colors duration-100 hover:bg-neutral-100 hover:text-neutral-700"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Notifications"
-            >
-              <Bell size={20} strokeWidth={1.8} />
-              {/* Dot indicator (10% accent) */}
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-primary-500 ring-2 ring-white" />
-            </Link>
-
-            {/* Profile avatar */}
-            <Link
-              href="/account/profile"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-600 text-[13px] font-bold text-white transition-shadow duration-100 hover:shadow-md"
-              style={{ minWidth: '44px', minHeight: '44px' }}
-              aria-label="Your profile"
-            >
-              {initials}
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* ─── Dashboard Header (search + greeting + nav) ─── */}
+      <DashboardHeader
+        displayName={displayName}
+        initials={initials}
+      />
 
       {/* ─── Row 1: Streaming Now + Advanced Search (24px gap) ─── */}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
